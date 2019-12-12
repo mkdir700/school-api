@@ -31,15 +31,37 @@ class Score(BaseSchoolApi):
         except RequestException:
             msg = '获取成绩请求参数失败'
             raise ScoreException(self.code, msg)
-
-        payload = {
+        if score_year != None and score_term != None:
+            # 按学年查询
+            payload = {
+                '__VIEWSTATE': view_state,
+                'ddlXN': score_year,
+                'ddlXQ': score_term,
+                'txtQSCJ': '0',
+                'txtZZCJ': '100',
+                'Button1': '按学期查询'
+            }
+        elif score_year != None and score_term == None:
+            # 按学期查询
+            payload = {
             '__VIEWSTATE': view_state,
-            'Button2': '在校学习成绩查询',
-            'btn_zcj': '历年成绩',
-            'btnCx': ' 查  询 ',
-            'ddlXN': '',
-            'ddlXQ': ''
+            'ddlXN': score_year,
+            'ddlXQ': '',
+            'txtQSCJ': '0',
+            'txtZZCJ': '100',
+            'Button5': '按学年查询'
         }
+        elif score_year == None and score_term == None:
+            # 在校成绩查询
+            payload = {
+                '__VIEWSTATE': view_state,
+                'Button2': '在校学习成绩查询',
+                'btn_zcj': '历年成绩',
+                'btnCx': ' 查  询 ',
+                'ddlXN': '',
+                'ddlXQ': ''
+            }
+
         try:
             res = self._post(score_url, data=payload, **kwargs)
         except TooManyRedirects:
