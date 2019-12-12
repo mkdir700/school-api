@@ -51,15 +51,17 @@ class Score(BaseSchoolApi):
         if tip:
             raise ScoreException(self.code, tip)
 
-        return ScoreParse(self.code, res.text, use_api).get_score(score_year, score_term)
+        return ScoreParse(self.code, res.text, use_api, score_year, score_term).get_score(score_year, score_term)
 
 
 class ScoreParse():
     ''' 成绩页面解析模块 '''
 
-    def __init__(self, code, html, use_api):
+    def __init__(self, code, html, use_api, year, term):
         self.code = code
         self.use_api = use_api
+        self.year = year
+        self.term = term
         self.soup = BeautifulSoup(html, "html.parser")
         self._html_parse_of_score()
 
@@ -70,17 +72,20 @@ class ScoreParse():
 
         rows = table.find_all('tr')
         rows.pop(0)
+        year = self.year
+        term = self.term
         self.score_info = {}
         for row in rows:
             cells = row.find_all("td")
-            # 学年学期
-            year = cells[0].text
-            term = cells[1].text
+            # 课程代码
+            lesson_code = cells[0].text
             # 课程名
-            lesson_name = cells[3].text.strip()
-            credit = cells[6].text.strip() or 0
-            point = cells[7].text.strip() or 0
-            score = cells[8].text.strip() or 0
+            lesson_name = cells[1].text
+            # 学分
+            credit = cells[8].text.strip() or 0
+            point = cells[9].text.strip() or 0
+            # 最终成绩
+            score = cells[4].text.strip() or 0
             score_dict = {
                 "lesson_name": lesson_name,
                 "credit": float(credit),
@@ -88,8 +93,9 @@ class ScoreParse():
                 "score": self.handle_data(score)
             }
             # 有其他成绩内容则输出
-            makeup_score = cells[10].text
-            retake_score = cells[11].text
+
+            makeup_score = cells[6].text # 补考成绩
+            retake_score = cells[7].text # 重修成绩
             if makeup_score != '\xa0':
                 # 补考成绩
                 score_dict['bkcj'] = makeup_score
@@ -100,6 +106,7 @@ class ScoreParse():
             self.score_info[year] = self.score_info.get(year, {})
             self.score_info[year][term] = self.score_info[year].get(term, [])
             self.score_info[year][term].append(score_dict)
+
 
     def get_score(self, year, term):
         ''' 返回成绩信息json格式 '''
